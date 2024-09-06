@@ -33,6 +33,9 @@ async fn fix_filesystem_resources(original_hostname: &str, hostname: &str, dirs:
 }
 
 async fn fix_dir_resources(original_hostname: &str, hostname: &str, dir: &Path) -> Result<()> {
+    filesystem_rename::fix_filesystem_node_env(original_hostname, hostname, dir)
+        .await
+        .context("fixing node.env")?;
     filesystem_rename::fix_filesystem_etcd_static_pods(original_hostname, hostname, dir)
         .await
         .context("fixing etcd static pods")?;

@@ -70,6 +70,36 @@ pub(crate) async fn fix_filesystem_etcd_configmap_pod_yaml(original_hostname: &s
     Ok(())
 }
 
+pub(crate) async fn fix_filesystem_node_env(original_hostname: &str, hostname: &str, dir: &Path) -> Result<()> {
+    join_all(file_utils::globvec(dir, "**/node.env")?.into_iter().map(|file_path| {
+        let path = file_path.clone();
+        let original_hostname = original_hostname.to_string();
+        let hostname = hostname.to_string();
+        tokio::spawn(async move {
+            let cloned_path = file_path.clone();
+            async move {
+                let contents = read_file_to_string(&file_path)
+                    .await
+                    .context(format!("reading {:?}", cloned_path))?;
+
+                commit_file(file_path, contents.replace(&original_hostname, &hostname).to_string())
+                    .await
+                    .context(format!("writing {:?}", cloned_path))?;
+
+                anyhow::Ok(())
+            }
+            .await
+            .context(format!("fixing {:?}", path))
+        })
+    }))
+    .await
+    .into_iter()
+    .collect::<Result<Vec<_>, _>>()?
+    .into_iter()
+    .collect::<Result<Vec<_>, _>>()?;
+    Ok(())
+}
+
 pub(crate) async fn fix_filesystem_etcd_scripts_cluster_backup_sh(original_hostname: &str, hostname: &str, dir: &Path) -> Result<()> {
     join_all(
         file_utils::globvec(dir, "**/etcd-scripts/cluster-backup.sh")?
