@@ -149,6 +149,10 @@ pub(crate) async fn fix_etcd_endpoints(etcd_client: &Arc<InMemoryK8sEtcd>, ip: &
                     .as_object_mut()
                     .context("data not an object")?;
 
+                if data.len() == 0 {
+                    return Ok(());
+                }
+
                 ensure!(data.len() == 1, "data has more than one key, is this SNO?");
 
                 // Ensure above guarantees that this unwrap will never panic
