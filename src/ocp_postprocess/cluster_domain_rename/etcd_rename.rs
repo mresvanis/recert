@@ -722,13 +722,33 @@ pub(crate) async fn fix_console_cluster_config(etcd_client: &Arc<InMemoryK8sEtcd
     Ok(())
 }
 
-pub(crate) async fn fix_dns_cluster_config(etcd_client: &Arc<InMemoryK8sEtcd>, cluster_domain: &str) -> Result<()> {
+pub(crate) async fn fix_dns_cluster_config(
+    etcd_client: &Arc<InMemoryK8sEtcd>,
+    cluster_domain: &str,
+    cluster_name: &str,
+    infra_id: &str,
+) -> Result<()> {
     let k8s_resource_location = K8sResourceLocation::new(None, "Dns", "cluster", "config.openshift.io");
     let mut config = get_etcd_json(etcd_client, &k8s_resource_location)
         .await?
         .context("could not find dns cluster config")?;
 
     fix_dns(&mut config, cluster_domain)?;
+
+    let tags = &mut config
+        .pointer_mut("/spec/privateZone/tags")
+        .context("no /spec/privateZone/tags")?
+        .as_object_mut()
+        .context("spec.privateZone.tags not an object")?;
+    tags.clear();
+    tags.insert(
+        "Name".to_string(),
+        serde_json::Value::String(format!("{}-{}-int", cluster_name, infra_id).to_string()),
+    );
+    tags.insert(
+        format!("kubernetes.io/cluster/{}-{}", cluster_name, infra_id).to_string(),
+        serde_json::Value::String("owned".to_string()),
+    );
 
     put_etcd_yaml(etcd_client, &k8s_resource_location, config).await?;
 

@@ -151,7 +151,7 @@ async fn fix_etcd_resources(
     etcd_rename::fix_console_cluster_config(etcd_client, cluster_domain)
         .await
         .context("fixing console cluster config")?;
-    etcd_rename::fix_dns_cluster_config(etcd_client, cluster_domain)
+    etcd_rename::fix_dns_cluster_config(etcd_client, cluster_domain, &cluster_rename.cluster_name, &generated_infra_id)
         .await
         .context("fixing dns cluster config")?;
     etcd_rename::fix_infrastructure_cluster_config(etcd_client, cluster_domain, &generated_infra_id)
