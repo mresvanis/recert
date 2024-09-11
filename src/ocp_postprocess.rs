@@ -869,6 +869,11 @@ pub(crate) async fn cluster_rename(
         "replicasets/",
         // Delete ovnkube-node daemonset as it has cluster name in bash script
         "daemonsets/openshift-ovn-kubernetes/ovnkube-node",
+        // Delete the *.apps DNS record as it's refers to the previous hosted private zone
+        // and the reconcilation loop of the ingress-operator's DNS controller won't move
+        // forward with the creation of the new one.
+        // https://github.com/openshift/cluster-ingress-operator/blob/master/pkg/operator/controller/dns/controller.go#L165
+        "ingress.operator.openshift.io/dnsrecords/openshift-ingress-operator/default-wildcard",
     ]
     .iter()
     {
